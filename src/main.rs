@@ -17,7 +17,7 @@ fn main() {
 
 fn is_buildin(cmd: &str) -> bool {
   match cmd {
-    "exit" | "echo" | "type" => true,
+    "exit" | "echo" | "type" | "pwd" => true,
     _ => false,
   }
 }
@@ -51,6 +51,10 @@ fn execute_builtin(args: &[&str]) {
           }
         }
       });
+    }
+    "pwd" => {
+      let pwd = std::env::current_dir().unwrap();
+      println!("{}", pwd.display());
     }
     _ => panic!(),
   }
