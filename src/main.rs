@@ -6,13 +6,24 @@ fn main() {
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
-        let mut command = String::new();
-        io::stdin().read_line(&mut command).unwrap();
-        command = command.trim().to_string();
-        if command == "exit" {
-            break;
-        } else {
-            println!("{}: command not found", command);
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        let args: Vec<&str> = input.split_whitespace().collect();
+        if !args.is_empty() {
+            let cmd = args[0];
+            let cmd_args = &args[1..];
+            match cmd {
+                "exit" => {
+                    break;
+                }
+                "echo" => {
+                    let output = cmd_args.join(" ");
+                    println!("{}", output);
+                }
+                _ => {
+                    println!("{}: command not found", cmd);
+                }
+            }
         }
     }
 }
