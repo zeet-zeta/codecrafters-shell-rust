@@ -28,8 +28,8 @@ fn execute(args: &[&str]) {
   } else {
     let cmd = args[0];
     match find_executable(cmd) {
-      Some(p) => {
-        let _ = Command::new(p).args(&args[1..]).status();
+      Some(_) => {
+        let _ = Command::new(cmd).args(&args[1..]).status();
       }
       None => println!("{}: command not found", cmd),
     }
