@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::panic;
+use std::{os::unix::fs::MetadataExt, panic};
 
 fn main() {
     loop {
@@ -39,10 +39,32 @@ fn execute_builtin(args: &[&str]) {
                 if is_buildin(s) {
                     println!("{} is a shell builtin", s);
                 } else {
-                    println!("{}: not found", s);
+                    match find_executable(s) {
+                        Some(p) => println!("{} is {}", s, p.display()),
+                        None => println!("{}: not found", s),
+                    }
                 }
             });
         }
         _ => panic!(),
+    }
+}
+
+fn find_executable(cmd: &str) -> Option<std::path::PathBuf> {
+    let path_os = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_os) {
+        let full_path = dir.join(cmd);
+        if is_executable(&full_path) {
+            return Some(full_path);
+        }
+    }
+    None
+}
+
+fn is_executable(path: &std::path::Path) -> bool {
+    if let Ok(metadata) = path.metadata() {
+        metadata.is_file() && (metadata.mode() & 0o111) != 0
+    } else {
+        false
     }
 }
