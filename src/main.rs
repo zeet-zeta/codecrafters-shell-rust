@@ -1,8 +1,13 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::{os::unix::fs::MetadataExt, panic, process::Command};
+use std::{env, os::unix::fs::MetadataExt, panic, path::PathBuf, process::Command};
 
 fn main() {
+  let pwd = std::env::current_dir().unwrap();
+  unsafe {
+    env::set_var("PWD", pwd);
+  }
+
   loop {
     print!("$ ");
     io::stdout().flush().unwrap();
@@ -17,7 +22,7 @@ fn main() {
 
 fn is_buildin(cmd: &str) -> bool {
   match cmd {
-    "exit" | "echo" | "type" | "pwd" => true,
+    "exit" | "echo" | "type" | "pwd" | "cd" => true,
     _ => false,
   }
 }
@@ -56,6 +61,7 @@ fn execute_builtin(args: &[&str]) {
       let pwd = std::env::current_dir().unwrap();
       println!("{}", pwd.display());
     }
+    "cd" => builtin_cd(&args[1..]),
     _ => panic!(),
   }
 }
@@ -76,5 +82,30 @@ fn is_executable(path: &std::path::Path) -> bool {
     metadata.is_file() && (metadata.mode() & 0o111) != 0
   } else {
     false
+  }
+}
+
+fn builtin_cd(args: &[&str]) {
+  // 此时的args是不含cd命令本身的
+  if args.len() >= 2 {
+    println!("Too many args for cd command");
+    return;
+  }
+  let current_pwd = std::env::current_dir().unwrap();
+  if args.len() == 0 {
+    todo!();
+  }
+  let target_path = match args[0] {
+    path_str => PathBuf::from(path_str),
+  };
+  match std::env::set_current_dir(&target_path) {
+    Ok(_) => unsafe {
+      env::set_var("OLDPWD", current_pwd);
+      let pwd = std::env::current_dir().unwrap();
+      env::set_var("PWD", pwd);
+    },
+    Err(_) => {
+      eprintln!("cd: {}: No such file or directory", target_path.display());
+    }
   }
 }
