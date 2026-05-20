@@ -36,7 +36,7 @@ fn execute(args: &[&str]) {
       Some(_) => {
         let _ = Command::new(cmd).args(&args[1..]).status();
       }
-      None => println!("{}: command not found", cmd),
+      None => eprintln!("{}: command not found", cmd),
     }
   }
 }
@@ -52,7 +52,7 @@ fn execute_builtin(args: &[&str]) {
         } else {
           match find_executable(s) {
             Some(p) => println!("{} is {}", s, p.display()),
-            None => println!("{}: not found", s),
+            None => eprintln!("{}: not found", s),
           }
         }
       });
@@ -88,7 +88,7 @@ fn is_executable(path: &std::path::Path) -> bool {
 fn builtin_cd(args: &[&str]) {
   // 此时的args是不含cd命令本身的
   if args.len() >= 2 {
-    println!("Too many args for cd command");
+    eprintln!("Too many args for cd command");
     return;
   }
   let current_pwd = std::env::current_dir().unwrap();
