@@ -52,7 +52,7 @@ fn execute_external(c: CommandArgs) {
                     child.stderr(file);
                 }
             }
-            let _ = child.spawn();
+            let _ = child.status();
         }
         None => eprintln!("{}: command not found", c.cmd),
     }
