@@ -91,10 +91,10 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
 
     if let Some(idx) = tokens
         .iter()
-        .rposition(|x| x == ">" || x == ">>" || x == "1>")
+        .rposition(|x| x == ">" || x == ">>" || x == "1>" || x == "1>>")
     {
         if idx + 1 < tokens.len() {
-            let mode = if tokens[idx] == ">>" {
+            let mode = if tokens[idx] == ">>" || tokens[idx] == "1>>" {
                 RedirectMode::Append
             } else {
                 RedirectMode::Overwrite
