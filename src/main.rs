@@ -2,13 +2,16 @@
 use std::io::{self, Write};
 use std::{env, os::unix::fs::MetadataExt, panic, path::PathBuf, process::Command};
 
+mod parser;
+
 fn main() {
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        let args: Vec<&str> = input.split_whitespace().collect();
+        let parsed_strings = parser::parse_command_line(&input);
+        let args: Vec<&str> = parsed_strings.iter().map(|s| s.as_str()).collect();
         if !args.is_empty() {
             execute(&args);
         }
