@@ -7,7 +7,20 @@ enum State {
     DoubleQuoteWithEscape,
 }
 
-pub fn parse_command_line(input: &str) -> Vec<String> {
+pub enum RedirectMode {
+    Overwrite,
+    Append,
+}
+
+#[derive(Default)]
+pub struct CommandArgs {
+    pub cmd: String,
+    pub args: Vec<String>,
+    pub stdout: Option<(String, RedirectMode)>,
+    pub stderr: Option<(String, RedirectMode)>,
+}
+
+fn split(input: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut current_arg = String::new();
     let mut state = State::Normal;
@@ -54,4 +67,57 @@ pub fn parse_command_line(input: &str) -> Vec<String> {
         }
     }
     args
+}
+
+fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
+    if tokens.is_empty() {
+        return None;
+    }
+    let mut result = CommandArgs::default();
+    if let Some(idx) = tokens.iter().rposition(|x| x == "2>" || x == "2>>") {
+        if idx + 1 < tokens.len() {
+            let mode = if tokens[idx] == "2>>" {
+                RedirectMode::Append
+            } else {
+                RedirectMode::Overwrite
+            };
+            let file = tokens.remove(idx + 1);
+            tokens.remove(idx);
+            result.stderr = Some((file, mode));
+        } else {
+            return None;
+        }
+    }
+
+    if let Some(idx) = tokens
+        .iter()
+        .rposition(|x| x == ">" || x == ">>" || x == "1>")
+    {
+        if idx + 1 < tokens.len() {
+            let mode = if tokens[idx] == ">>" {
+                RedirectMode::Append
+            } else {
+                RedirectMode::Overwrite
+            };
+            let file = tokens.remove(idx + 1);
+            tokens.remove(idx);
+            result.stdout = Some((file, mode));
+        } else {
+            return None;
+        }
+    }
+
+    if tokens.is_empty() {
+        return None;
+    }
+
+    result.cmd = tokens.remove(0);
+    result.args = tokens;
+    Some(result)
+}
+
+pub fn parse(input: &str) -> Option<CommandArgs> {
+    let tokens = split(input);
+    let command = parse_redirect(tokens);
+    command
 }
