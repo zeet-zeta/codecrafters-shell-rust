@@ -72,8 +72,7 @@ impl LineEditor {
 
     fn handle_tab(&mut self) -> io::Result<()> {
         let mut stdout = io::stdout();
-        let (temp, i) = parser::split(&self.input_buffer);
-        let completeion_start_position = if i == 0 { 0 } else { i + 1 };
+        let (temp, completion_start) = parser::split(&self.input_buffer);
         let cmd_or_file = temp.len() == 0;
         let mut candidates = if cmd_or_file {
             utils::get_all_commands()
@@ -84,11 +83,10 @@ impl LineEditor {
         candidates.sort();
         candidates.dedup();
 
-        let prefix: String = self.input_buffer[completeion_start_position..].to_string();
+        let prefix: String = self.input_buffer[completion_start..].to_string();
         if !self.input_buffer.is_empty() {
             let matches: Vec<&str> = candidates
                 .iter()
-                // .filter(|cmd| cmd.starts_with(&self.input_buffer[completeion_start_position..]))
                 .filter_map(|x| x.strip_prefix(&prefix))
                 .collect();
 

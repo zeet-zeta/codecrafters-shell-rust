@@ -24,7 +24,7 @@ pub fn split(input: &str) -> (Vec<String>, usize) {
     let mut args = Vec::new();
     let mut current_arg = String::new();
     let mut state = State::Normal;
-    let mut last_token_start = 0;
+    let mut completion_start: usize = -1;
 
     for (i, ch) in input.char_indices() {
         match state {
@@ -40,7 +40,7 @@ pub fn split(input: &str) -> (Vec<String>, usize) {
                         args.push(current_arg.clone());
                         current_arg.clear();
                     }
-                    last_token_start = i;
+                    completion_start = i;
                 }
                 '\\' => {
                     state = State::NormalWithEscape;
@@ -68,7 +68,7 @@ pub fn split(input: &str) -> (Vec<String>, usize) {
             }
         }
     }
-    (args, last_token_start)
+    (args, completion_start.wrapping_add(1))
 }
 
 fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
