@@ -24,7 +24,7 @@ pub fn split(input: &str) -> (Vec<String>, usize) {
     let mut args = Vec::new();
     let mut current_arg = String::new();
     let mut state = State::Normal;
-    let mut completion_start: usize = -1;
+    let mut completion_start: usize = usize::MAX;
 
     for (i, ch) in input.char_indices() {
         match state {
