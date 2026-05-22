@@ -18,6 +18,8 @@ fn main() -> io::Result<()> {
     let mut input_buffer = String::new();
     let mut stdout = io::stdout();
     execute!(stdout, Print("$ "))?;
+
+    let mut tab_flag = false;
     loop {
         if let Event::Key(key_event) = event::read()? {
             match (key_event.code, key_event.modifiers) {
@@ -49,13 +51,32 @@ fn main() -> io::Result<()> {
                             .filter(|cmd| cmd.starts_with(&input_buffer))
                             .collect();
 
-                        if matches.len() == 1 {
-                            let completion = &matches[0][input_buffer.len()..];
-                            input_buffer.push_str(completion);
-                            input_buffer.push_str(" ");
-                            execute!(stdout, Print(completion), Print(" "))?;
-                        } else {
-                            execute!(stdout, Print("\x07"))?;
+                        match matches.len() {
+                            0 => {
+                                execute!(stdout, Print("\x07"))?;
+                                tab_flag = false;
+                            }
+                            1 => {
+                                let completion = &matches[0][input_buffer.len()..];
+                                input_buffer.push_str(completion);
+                                input_buffer.push_str(" ");
+                                execute!(stdout, Print(completion), Print(" "))?;
+                                tab_flag = false;
+                            }
+                            _ => {
+                                if tab_flag {
+                                    execute!(stdout, Print("\r\n"))?;
+                                    matches.iter().for_each(|s| print!("{} ", s));
+                                    execute!(stdout, Print("\r\n"))?;
+                                    execute!(stdout, Print("$ "))?;
+                                    print!("{}", input_buffer);
+                                    stdout.flush()?;
+                                    tab_flag = false;
+                                } else {
+                                    execute!(stdout, Print("\x07"))?;
+                                    tab_flag = true;
+                                }
+                            }
                         }
                     }
                 }
