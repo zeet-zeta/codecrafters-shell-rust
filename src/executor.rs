@@ -1,4 +1,5 @@
 use std::{
+    fs,
     fs::{File, OpenOptions},
     io::Write,
     os::{fd::AsRawFd, unix::fs::MetadataExt},
@@ -162,4 +163,19 @@ fn open_file(path: &str, mode: RedirectMode) -> std::io::Result<File> {
             .open(path),
         RedirectMode::Append => OpenOptions::new().append(true).create(true).open(path),
     }
+}
+
+pub fn get_all_external_commands() -> Option<Vec<String>> {
+    let mut result = Vec::new();
+    let path_os = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path_os) {
+        let entries = fs::read_dir(dir).ok()?;
+        for entry in entries {
+            let path = entry.ok()?.path();
+            if is_executable(&path) {
+                result.push(path.file_name()?.to_str()?.to_string());
+            }
+        }
+    }
+    Some(result)
 }

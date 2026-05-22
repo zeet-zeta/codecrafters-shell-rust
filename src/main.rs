@@ -8,11 +8,12 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 
+use crate::executor::get_all_external_commands;
+
 mod executor;
 mod parser;
 
 fn main() -> io::Result<()> {
-    let completions = vec!["echo", "exit"];
     enable_raw_mode()?;
     let mut input_buffer = String::new();
     let mut stdout = io::stdout();
@@ -35,11 +36,16 @@ fn main() -> io::Result<()> {
                     execute!(stdout, Print("$ "))?;
                 }
                 (KeyCode::Tab, KeyModifiers::NONE) => {
+                    let mut candidates = get_all_external_commands().unwrap_or_default();
+                    candidates.push("exit".to_string());
+                    candidates.push("echo".to_string());
+
                     if !input_buffer.is_empty() {
-                        let matches: Vec<&&str> = completions
+                        let matches: Vec<&String> = candidates
                             .iter()
                             .filter(|cmd| cmd.starts_with(&input_buffer))
                             .collect();
+
                         if matches.len() == 1 {
                             let completion = &matches[0][input_buffer.len()..];
                             input_buffer.push_str(completion);
