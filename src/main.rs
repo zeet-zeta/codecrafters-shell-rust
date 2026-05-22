@@ -40,6 +40,9 @@ fn main() -> io::Result<()> {
                     candidates.push("exit".to_string());
                     candidates.push("echo".to_string());
 
+                    candidates.sort();
+                    candidates.dedup();
+
                     if !input_buffer.is_empty() {
                         let matches: Vec<&String> = candidates
                             .iter()
