@@ -1,13 +1,13 @@
 use std::{
-    fs,
     fs::{File, OpenOptions},
     io::Write,
-    os::{fd::AsRawFd, unix::fs::MetadataExt},
+    os::fd::AsRawFd,
     path::PathBuf,
     process::Command,
 };
 
 use crate::parser::{CommandArgs, RedirectMode};
+use crate::utils::find_executable;
 
 enum Builtin {
     Exit,
@@ -135,25 +135,6 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
     }
 }
 
-fn find_executable(cmd: &str) -> Option<std::path::PathBuf> {
-    let path_os = std::env::var_os("PATH")?;
-    for dir in std::env::split_paths(&path_os) {
-        let full_path = dir.join(cmd);
-        if is_executable(&full_path) {
-            return Some(full_path);
-        }
-    }
-    None
-}
-
-fn is_executable(path: &std::path::Path) -> bool {
-    if let Ok(metadata) = path.metadata() {
-        metadata.is_file() && (metadata.mode() & 0o111) != 0
-    } else {
-        false
-    }
-}
-
 fn open_file(path: &str, mode: RedirectMode) -> std::io::Result<File> {
     match mode {
         RedirectMode::Overwrite => OpenOptions::new()
@@ -163,19 +144,4 @@ fn open_file(path: &str, mode: RedirectMode) -> std::io::Result<File> {
             .open(path),
         RedirectMode::Append => OpenOptions::new().append(true).create(true).open(path),
     }
-}
-
-pub fn get_all_external_commands() -> Option<Vec<String>> {
-    let mut result = Vec::new();
-    let path_os = std::env::var_os("PATH")?;
-    for dir in std::env::split_paths(&path_os) {
-        let entries = fs::read_dir(dir).ok()?;
-        for entry in entries {
-            let path = entry.ok()?.path();
-            if is_executable(&path) {
-                result.push(path.file_name()?.to_str()?.to_string());
-            }
-        }
-    }
-    Some(result)
 }
