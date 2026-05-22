@@ -83,7 +83,7 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
     }
 
     match builtin_type {
-        Builtin::Exit => std::process::exit(0),
+        Builtin::Exit => {}
         Builtin::Echo => println!("{}", c.args.join(" ")),
         Builtin::Type => {
             c.args.iter().for_each(|s| {
