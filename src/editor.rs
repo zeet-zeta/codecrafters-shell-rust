@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self};
 
 use crossterm::{
     event::{KeyCode, KeyEvent, KeyModifiers},
@@ -40,6 +40,7 @@ impl LineEditor {
         match (key_event.code, key_event.modifiers) {
             (KeyCode::Enter, KeyModifiers::NONE) | (KeyCode::Char('j'), KeyModifiers::CONTROL) => {
                 execute!(stdout, Print("\r\n"))?;
+                self.input_buffer.push('\n');
                 if let Some(c) = parser::parse(&self.input_buffer) {
                     if c.cmd == "exit" {
                         self.should_exit = true;
@@ -71,40 +72,47 @@ impl LineEditor {
 
     fn handle_tab(&mut self) -> io::Result<()> {
         let mut stdout = io::stdout();
-        let mut candidates = utils::get_all_external_commands().unwrap_or_default();
-        candidates.push("exit".to_string());
-        candidates.push("echo".to_string());
+        let (temp, i) = parser::split(&self.input_buffer);
+        let completeion_start_position = if i == 0 { 0 } else { i + 1 };
+        let cmd_or_file = temp.len() == 0;
+        let mut candidates = if cmd_or_file {
+            utils::get_all_commands()
+        } else {
+            utils::get_cwd_files()?
+        };
 
         candidates.sort();
         candidates.dedup();
 
+        let prefix: String = self.input_buffer[completeion_start_position..].to_string();
         if !self.input_buffer.is_empty() {
-            let matches: Vec<&String> = candidates
+            let matches: Vec<&str> = candidates
                 .iter()
-                .filter(|cmd| cmd.starts_with(&self.input_buffer))
+                // .filter(|cmd| cmd.starts_with(&self.input_buffer[completeion_start_position..]))
+                .filter_map(|x| x.strip_prefix(&prefix))
                 .collect();
 
+            let backup_tab_flag = self.tab_flag;
+            self.tab_flag = false;
             match matches.len() {
                 0 => {
                     execute!(stdout, Print("\x07"))?;
-                    self.tab_flag = false;
                 }
                 1 => {
-                    let completion = &matches[0][self.input_buffer.len()..];
-                    self.input_buffer.push_str(completion);
-                    self.input_buffer.push_str(" ");
-                    execute!(stdout, Print(completion), Print(" "))?;
-                    self.tab_flag = false;
+                    let completion = matches[0];
+                    self.append_to_buffer(completion)?;
+                    self.append_to_buffer(" ")?;
                 }
                 _ => {
-                    if self.tab_flag {
-                        execute!(stdout, Print("\r\n"))?;
-                        matches.iter().for_each(|s| print!("{} ", s));
-                        execute!(stdout, Print("\r\n"))?;
+                    if backup_tab_flag {
+                        let to_print = matches
+                            .iter()
+                            .map(|s| format!("{}{}", prefix, s))
+                            .collect::<Vec<_>>()
+                            .join(" ");
+                        execute!(stdout, Print("\r\n"), Print(to_print), Print("\r\n"))?;
                         self.print_prompt()?;
-                        print!("{}", self.input_buffer);
-                        stdout.flush()?;
-                        self.tab_flag = false;
+                        execute!(stdout, Print(&self.input_buffer))?;
                     } else {
                         let first = matches[0];
                         let last = matches[matches.len() - 1];
@@ -113,12 +121,9 @@ impl LineEditor {
                             .zip(last.chars())
                             .take_while(|(c1, c2)| c1 == c2)
                             .count();
-                        let orig_len = self.input_buffer.len();
-                        if common_len > orig_len {
-                            let completion = &first[orig_len..common_len];
-                            execute!(stdout, Print(completion))?;
-                            self.input_buffer = first[..common_len].to_string();
-                            self.tab_flag = false;
+                        if common_len > 0 {
+                            let completion = &first[0..common_len];
+                            self.append_to_buffer(completion)?;
                         } else {
                             execute!(stdout, Print("\x07"))?;
                             self.tab_flag = true;
@@ -128,5 +133,11 @@ impl LineEditor {
             }
         }
         Ok(())
+    }
+
+    fn append_to_buffer(&mut self, s: &str) -> io::Result<()> {
+        let mut stdout = io::stdout();
+        self.input_buffer.push_str(s);
+        execute!(stdout, Print(s))
     }
 }

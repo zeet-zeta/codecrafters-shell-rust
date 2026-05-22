@@ -20,12 +20,13 @@ pub struct CommandArgs {
     pub stderr: Option<(String, RedirectMode)>,
 }
 
-fn split(input: &str) -> Vec<String> {
+pub fn split(input: &str) -> (Vec<String>, usize) {
     let mut args = Vec::new();
     let mut current_arg = String::new();
     let mut state = State::Normal;
+    let mut last_token_start = 0;
 
-    for ch in input.chars() {
+    for (i, ch) in input.char_indices() {
         match state {
             State::Normal => match ch {
                 '\'' => {
@@ -39,6 +40,7 @@ fn split(input: &str) -> Vec<String> {
                         args.push(current_arg.clone());
                         current_arg.clear();
                     }
+                    last_token_start = i;
                 }
                 '\\' => {
                     state = State::NormalWithEscape;
@@ -66,10 +68,7 @@ fn split(input: &str) -> Vec<String> {
             }
         }
     }
-    if !current_arg.is_empty() {
-        args.push(current_arg);
-    }
-    args
+    (args, last_token_start)
 }
 
 fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
@@ -120,7 +119,7 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
 }
 
 pub fn parse(input: &str) -> Option<CommandArgs> {
-    let tokens = split(input);
+    let (tokens, _) = split(input);
     let command = parse_redirect(tokens);
     command
 }
