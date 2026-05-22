@@ -26,7 +26,6 @@ fn main() -> io::Result<()> {
                     }
 
                     execute!(stdout, Print("\r\n"))?;
-                    input_buffer.push_str("\n");
                     if let Some(c) = parser::parse(&input_buffer) {
                         disable_raw_mode()?;
                         executor::execute(c);
@@ -49,14 +48,14 @@ fn main() -> io::Result<()> {
                         }
                     }
                 }
-                KeyCode::Char(c) => {
-                    input_buffer.push(c);
-                    execute!(stdout, Print(c))?;
-                }
-                KeyCode::Backspace => {
+                KeyCode::Backspace | KeyCode::Char('\x7f') | KeyCode::Char('\x08') => {
                     if input_buffer.pop().is_some() {
                         execute!(stdout, Print("\x08 \x08"))?;
                     }
+                }
+                KeyCode::Char(c) => {
+                    input_buffer.push(c);
+                    execute!(stdout, Print(c))?;
                 }
                 _ => {}
             }
