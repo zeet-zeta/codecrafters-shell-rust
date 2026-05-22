@@ -2,7 +2,7 @@
 use std::io::{self, Write};
 
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent},
+    event::{self, Event, KeyCode, KeyModifiers},
     execute,
     style::Print,
     terminal::{disable_raw_mode, enable_raw_mode},
@@ -18,15 +18,15 @@ fn main() -> io::Result<()> {
     let mut stdout = io::stdout();
     execute!(stdout, Print("$ "))?;
     loop {
-        if let Event::Key(KeyEvent { code, .. }) = event::read()? {
-            match code {
-                KeyCode::Enter => {
-                    if input_buffer == "exit" {
-                        break;
-                    }
-
+        if let Event::Key(key_event) = event::read()? {
+            match (key_event.code, key_event.modifiers) {
+                (KeyCode::Enter, KeyModifiers::NONE)
+                | (KeyCode::Char('j'), KeyModifiers::CONTROL) => {
                     execute!(stdout, Print("\r\n"))?;
                     if let Some(c) = parser::parse(&input_buffer) {
+                        if c.cmd == "exit" {
+                            break;
+                        }
                         disable_raw_mode()?;
                         executor::execute(c);
                         enable_raw_mode()?;
@@ -34,7 +34,7 @@ fn main() -> io::Result<()> {
                     input_buffer.clear();
                     execute!(stdout, Print("$ "))?;
                 }
-                KeyCode::Tab => {
+                (KeyCode::Tab, KeyModifiers::NONE) => {
                     if !input_buffer.is_empty() {
                         let matches: Vec<&&str> = completions
                             .iter()
@@ -48,12 +48,12 @@ fn main() -> io::Result<()> {
                         }
                     }
                 }
-                KeyCode::Backspace | KeyCode::Char('\x7f') | KeyCode::Char('\x08') => {
+                (KeyCode::Backspace, KeyModifiers::NONE) => {
                     if input_buffer.pop().is_some() {
                         execute!(stdout, Print("\x08 \x08"))?;
                     }
                 }
-                KeyCode::Char(c) => {
+                (KeyCode::Char(c), KeyModifiers::NONE) => {
                     input_buffer.push(c);
                     execute!(stdout, Print(c))?;
                 }
