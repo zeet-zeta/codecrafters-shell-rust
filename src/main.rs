@@ -53,7 +53,7 @@ fn main() -> io::Result<()> {
                         execute!(stdout, Print("\x08 \x08"))?;
                     }
                 }
-                (KeyCode::Char(c), KeyModifiers::NONE) => {
+                (KeyCode::Char(c), KeyModifiers::NONE | KeyModifiers::SHIFT) => {
                     input_buffer.push(c);
                     execute!(stdout, Print(c))?;
                 }
