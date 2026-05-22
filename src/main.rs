@@ -45,6 +45,8 @@ fn main() -> io::Result<()> {
                             input_buffer.push_str(completion);
                             input_buffer.push_str(" ");
                             execute!(stdout, Print(completion), Print(" "))?;
+                        } else {
+                            execute!(stdout, Print("\x07"))?;
                         }
                     }
                 }
