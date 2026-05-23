@@ -119,7 +119,11 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                 eprintln!("cd: {}: No such file or directory", target_path.display());
             }
         }
-        Builtin::Complete => {}
+        Builtin::Complete => {
+            if c.args.len() == 2 && c.args[0] == "-p" {
+                eprintln!("complete: {}: no completion specification", c.args[1]);
+            }
+        }
     }
 
     let _ = std::io::stdout().flush();
