@@ -119,6 +119,7 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                 eprintln!("cd: {}: No such file or directory", target_path.display());
             }
         }
+        Builtin::Complete => {}
     }
 
     let _ = std::io::stdout().flush();
