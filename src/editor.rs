@@ -89,7 +89,14 @@ impl LineEditor {
                 } else {
                     temp.last().unwrap().clone()
                 };
-                get_completor_results(&completer, &temp[0], &pending, &arg3)
+                get_completor_results(
+                    &completer,
+                    &temp[0],
+                    &pending,
+                    &arg3,
+                    &self.input_buffer,
+                    &completion_start.to_string(),
+                )
             } else {
                 let path = match pending.rsplit_once('/') {
                     Some((dir, _)) => {
@@ -164,8 +171,22 @@ impl LineEditor {
     }
 }
 
-fn get_completor_results(script: &str, arg1: &str, arg2: &str, arg3: &str) -> Vec<String> {
-    let output = match Command::new(script).arg(arg1).arg(arg2).arg(arg3).output() {
+fn get_completor_results(
+    script: &str,
+    arg1: &str,
+    arg2: &str,
+    arg3: &str,
+    env1: &str,
+    env2: &str,
+) -> Vec<String> {
+    let output = match Command::new(script)
+        .arg(arg1)
+        .arg(arg2)
+        .arg(arg3)
+        .env("COMP_LINE", env1)
+        .env("COMP_POINT", env2)
+        .output()
+    {
         Ok(o) => o,
         Err(_) => return Vec::new(),
     };
