@@ -84,16 +84,11 @@ impl LineEditor {
             utils::get_all_commands()
         } else {
             if let Some(completer) = crate::state::find_completion(&temp[0]) {
-                let arg3 = if temp.len() == 1 {
-                    "".to_string()
-                } else {
-                    temp.last().unwrap().clone()
-                };
                 get_completor_results(
                     &completer,
                     &temp[0],
                     &pending,
-                    &arg3,
+                    &temp.last().unwrap(),
                     &self.input_buffer,
                     &self.input_buffer.len().to_string(),
                 )
