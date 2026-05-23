@@ -95,7 +95,7 @@ impl LineEditor {
                     &pending,
                     &arg3,
                     &self.input_buffer,
-                    &completion_start.to_string(),
+                    &self.input_buffer.len().to_string(),
                 )
             } else {
                 let path = match pending.rsplit_once('/') {
