@@ -21,6 +21,11 @@ pub fn register_completion(cmd: String, path: String) {
     }
 }
 
+pub fn unregister_completion(cmd: &str) {
+    if let Ok(mut guard) = COMPLETION_REGISTRY.write() {
+        guard.remove(cmd);
+    }
+}
 pub fn find_completion(cmd: &str) -> Option<String> {
     if let Ok(guard) = COMPLETION_REGISTRY.read() {
         guard.get(cmd).map(|spec| spec.completer_path.clone())

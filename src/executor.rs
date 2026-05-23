@@ -127,6 +127,8 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                 }
             } else if c.args.len() == 3 && c.args[0] == "-C" {
                 crate::state::register_completion(c.args[2].clone(), c.args[1].clone());
+            } else if c.args.len() == 2 && c.args[0] == "-r" {
+                crate::state::unregister_completion(&c.args[1]);
             }
         }
     }
