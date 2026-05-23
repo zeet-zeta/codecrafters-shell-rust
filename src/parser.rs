@@ -20,7 +20,7 @@ pub struct CommandArgs {
     pub stderr: Option<(String, RedirectMode)>,
 }
 
-pub fn split(input: &str) -> (Vec<String>, usize) {
+pub fn split(input: &str) -> (Vec<String>, usize, String) {
     let mut args = Vec::new();
     let mut current_arg = String::new();
     let mut state = State::Normal;
@@ -68,7 +68,7 @@ pub fn split(input: &str) -> (Vec<String>, usize) {
             }
         }
     }
-    (args, completion_start.wrapping_add(1))
+    (args, completion_start.wrapping_add(1), current_arg)
 }
 
 fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
@@ -119,7 +119,7 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
 }
 
 pub fn parse(input: &str) -> Option<CommandArgs> {
-    let (tokens, _) = split(input);
+    let (tokens, _, _) = split(input);
     let command = parse_redirect(tokens);
     command
 }

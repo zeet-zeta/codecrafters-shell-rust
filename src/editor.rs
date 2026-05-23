@@ -1,4 +1,7 @@
-use std::io::{self};
+use std::{
+    io::{self},
+    path::Path,
+};
 
 use crossterm::{
     event::{KeyCode, KeyEvent, KeyModifiers},
@@ -72,12 +75,19 @@ impl LineEditor {
 
     fn handle_tab(&mut self) -> io::Result<()> {
         let mut stdout = io::stdout();
-        let (temp, completion_start) = parser::split(&self.input_buffer);
+        let (temp, mut completion_start, pending) = parser::split(&self.input_buffer);
         let cmd_or_file = temp.len() == 0;
         let mut candidates = if cmd_or_file {
             utils::get_all_commands()
         } else {
-            utils::get_cwd_files()?
+            let path = match pending.rsplit_once('/') {
+                Some((dir, _)) => {
+                    completion_start += dir.len() + 1;
+                    Path::new(dir)
+                }
+                None => Path::new("."),
+            };
+            utils::get_files_and_directories(path)?
         };
 
         candidates.sort();
@@ -99,7 +109,9 @@ impl LineEditor {
                 1 => {
                     let completion = matches[0];
                     self.append_to_buffer(completion)?;
-                    self.append_to_buffer(" ")?;
+                    if !self.input_buffer.ends_with('/') {
+                        self.append_to_buffer(" ")?;
+                    }
                 }
                 _ => {
                     if backup_tab_flag {

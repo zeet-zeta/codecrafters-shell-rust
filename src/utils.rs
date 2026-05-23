@@ -1,6 +1,7 @@
+use std::fs;
 use std::io::{self};
 use std::os::unix::fs::MetadataExt;
-use std::{env, fs};
+use std::path::Path;
 
 pub fn find_executable(cmd: &str) -> Option<std::path::PathBuf> {
     let path_os = std::env::var_os("PATH")?;
@@ -53,14 +54,22 @@ pub fn get_all_commands() -> Vec<String> {
     result
 }
 
-pub fn get_cwd_files() -> io::Result<Vec<String>> {
-    let cwd = env::current_dir()?;
-    let entries = fs::read_dir(cwd)?;
+pub fn get_files_and_directories(path: &Path) -> io::Result<Vec<String>> {
+    if !path.exists() || !path.is_dir() {
+        return Ok(Vec::new());
+    }
+    let entries = fs::read_dir(path)?;
 
     let file_list = entries
         .filter_map(|entry| entry.ok())
-        .filter(|entry| entry.path().is_file())
-        .filter_map(|entry| entry.file_name().into_string().ok())
+        .filter_map(|entry| {
+            let name = entry.file_name().into_string().ok()?;
+            if entry.path().is_dir() {
+                Some(name + "/")
+            } else {
+                Some(name)
+            }
+        })
         .collect();
     Ok(file_list)
 }
