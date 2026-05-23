@@ -121,7 +121,12 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
         }
         Builtin::Complete => {
             if c.args.len() == 2 && c.args[0] == "-p" {
-                eprintln!("complete: {}: no completion specification", c.args[1]);
+                match crate::state::find_completion(&c.args[1]) {
+                    Some(s) => println!("complete -C '{}' {}", s, c.args[1]),
+                    None => eprintln!("complete: {}: no completion specification", c.args[1]),
+                }
+            } else if c.args.len() == 3 && c.args[0] == "-C" {
+                crate::state::register_completion(c.args[2].clone(), c.args[1].clone());
             }
         }
     }

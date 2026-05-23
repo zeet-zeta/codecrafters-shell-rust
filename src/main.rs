@@ -1,15 +1,15 @@
-use std::io;
-
 use crossterm::{
     event::{self, Event},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
+use std::io;
 
 use crate::editor::LineEditor;
 
 mod editor;
 mod executor;
 mod parser;
+mod state;
 mod utils;
 
 fn main() -> io::Result<()> {
