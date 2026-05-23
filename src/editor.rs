@@ -1,6 +1,7 @@
 use std::{
     io::{self},
     path::Path,
+    process::Command,
 };
 
 use crossterm::{
@@ -76,18 +77,24 @@ impl LineEditor {
     fn handle_tab(&mut self) -> io::Result<()> {
         let mut stdout = io::stdout();
         let (temp, mut completion_start, pending) = parser::split(&self.input_buffer);
-        let cmd_or_file = temp.len() == 0;
-        let mut candidates = if cmd_or_file {
+
+        if temp.len() != 0 {}
+
+        let mut candidates = if temp.len() == 0 {
             utils::get_all_commands()
         } else {
-            let path = match pending.rsplit_once('/') {
-                Some((dir, _)) => {
-                    completion_start += dir.len() + 1;
-                    Path::new(dir)
-                }
-                None => Path::new("."),
-            };
-            utils::get_files_and_directories(path)?
+            if let Some(completer) = crate::state::find_completion(&temp[0]) {
+                get_completor_results(&completer)
+            } else {
+                let path = match pending.rsplit_once('/') {
+                    Some((dir, _)) => {
+                        completion_start += dir.len() + 1;
+                        Path::new(dir)
+                    }
+                    None => Path::new("."),
+                };
+                utils::get_files_and_directories(path)?
+            }
         };
 
         candidates.sort();
@@ -150,4 +157,20 @@ impl LineEditor {
         self.input_buffer.push_str(s);
         execute!(stdout, Print(s))
     }
+}
+
+fn get_completor_results(script: &str) -> Vec<String> {
+    let output = match Command::new(script).output() {
+        Ok(o) => o,
+        Err(_) => return Vec::new(),
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+    let result = String::from_utf8_lossy(&output.stdout);
+    result
+        .lines()
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
+        .collect()
 }
