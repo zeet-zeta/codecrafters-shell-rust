@@ -15,6 +15,7 @@ enum Builtin {
     Type,
     Pwd,
     Cd,
+    Complete,
 }
 
 impl Builtin {
@@ -25,6 +26,7 @@ impl Builtin {
             "type" => Some(Builtin::Type),
             "pwd" => Some(Builtin::Pwd),
             "cd" => Some(Builtin::Cd),
+            "complete" => Some(Builtin::Complete),
             _ => None,
         }
     }
