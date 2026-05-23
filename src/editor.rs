@@ -84,7 +84,12 @@ impl LineEditor {
             utils::get_all_commands()
         } else {
             if let Some(completer) = crate::state::find_completion(&temp[0]) {
-                get_completor_results(&completer)
+                let arg3 = if temp.len() == 1 {
+                    "".to_string()
+                } else {
+                    temp.last().unwrap().clone()
+                };
+                get_completor_results(&completer, &temp[0], &pending, &arg3)
             } else {
                 let path = match pending.rsplit_once('/') {
                     Some((dir, _)) => {
@@ -159,8 +164,8 @@ impl LineEditor {
     }
 }
 
-fn get_completor_results(script: &str) -> Vec<String> {
-    let output = match Command::new(script).output() {
+fn get_completor_results(script: &str, arg1: &str, arg2: &str, arg3: &str) -> Vec<String> {
+    let output = match Command::new(script).arg(arg1).arg(arg2).arg(arg3).output() {
         Ok(o) => o,
         Err(_) => return Vec::new(),
     };
