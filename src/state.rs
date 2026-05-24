@@ -132,12 +132,19 @@ impl JobTable {
         self.jobs.push(detail);
     }
 
-    pub fn print(&self) {
+    pub fn print(&mut self) {
         let (plus_id, minus_id) = self.get_plus_and_minus_id();
-        for job in &self.jobs {
+        for job in &mut self.jobs {
+            if job.state == JobState::Running {
+                if let Ok(Some(_)) = job.handler.try_wait() {
+                    job.state = JobState::Done;
+                    job.command_string.truncate(job.command_string.len() - 2);
+                }
+            }
             let marker = Self::get_marker(job.id, plus_id, minus_id);
             println!("{}", job.to_string(marker));
         }
+        self.jobs.retain(|x| x.state == JobState::Running);
     }
 
     fn get_plus_and_minus_id(&self) -> (Option<usize>, Option<usize>) {

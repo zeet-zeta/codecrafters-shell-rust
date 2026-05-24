@@ -149,10 +149,6 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
         }
         Builtin::Jobs => {
             crate::state::with_global_jobs(|x| {
-                // let result = x.reap();
-                // for x in result {
-                //     println!("{}", x);
-                // }
                 x.print();
             });
         }
