@@ -121,6 +121,17 @@ impl JobDetail {
             self.id, marker, self.state, self.command_string
         )
     }
+
+    pub fn reap(&mut self) -> bool {
+        if self.state == JobState::Running {
+            if let Ok(Some(_)) = self.handler.try_wait() {
+                self.state = JobState::Done;
+                self.command_string.truncate(self.command_string.len() - 2);
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl JobTable {
@@ -132,19 +143,27 @@ impl JobTable {
         self.jobs.push(detail);
     }
 
-    pub fn print(&mut self) {
+    pub fn reap_and_print(&mut self) {
         let (plus_id, minus_id) = self.get_plus_and_minus_id();
         for job in &mut self.jobs {
-            if job.state == JobState::Running {
-                if let Ok(Some(_)) = job.handler.try_wait() {
-                    job.state = JobState::Done;
-                    job.command_string.truncate(job.command_string.len() - 2);
-                }
-            }
+            job.reap();
             let marker = Self::get_marker(job.id, plus_id, minus_id);
             println!("{}", job.to_string(marker));
         }
         self.jobs.retain(|x| x.state == JobState::Running);
+    }
+
+    pub fn reap(&mut self) -> Vec<String> {
+        let mut result = Vec::new();
+        let (plus_id, minus_id) = self.get_plus_and_minus_id();
+        for job in &mut self.jobs {
+            if job.reap() {
+                let marker = Self::get_marker(job.id, plus_id, minus_id);
+                result.push(job.to_string(marker));
+            }
+        }
+        self.jobs.retain(|x| x.state == JobState::Running);
+        result
     }
 
     fn get_plus_and_minus_id(&self) -> (Option<usize>, Option<usize>) {
@@ -163,23 +182,6 @@ impl JobTable {
             " "
         };
         marker
-    }
-
-    pub fn reap(&mut self) -> Vec<String> {
-        let mut result = Vec::new();
-        let (plus_id, minus_id) = self.get_plus_and_minus_id();
-        for job in &mut self.jobs {
-            if job.state == JobState::Running {
-                if let Ok(Some(_)) = job.handler.try_wait() {
-                    job.state = JobState::Done;
-                    job.command_string.truncate(job.command_string.len() - 2);
-                    let marker = Self::get_marker(job.id, plus_id, minus_id);
-                    result.push(job.to_string(marker));
-                }
-            }
-        }
-        self.jobs.retain(|x| x.state == JobState::Running);
-        result
     }
 }
 
