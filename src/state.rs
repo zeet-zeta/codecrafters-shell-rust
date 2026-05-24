@@ -102,8 +102,6 @@ pub struct JobDetail {
 }
 
 pub struct JobTable {
-    pub current: usize,
-    pub previous: usize,
     pub jobs: Vec<JobDetail>,
 }
 
@@ -120,26 +118,22 @@ impl JobDetail {
 
 impl JobTable {
     pub fn new() -> Self {
-        Self {
-            current: 0,
-            previous: 0,
-            jobs: Vec::new(),
-        }
+        Self { jobs: Vec::new() }
     }
 
     pub fn add(&mut self, detail: JobDetail) {
-        if self.current != 0 {
-            self.previous = self.current;
-        }
-        self.current = detail.id;
         self.jobs.push(detail);
     }
 
     pub fn print(&self) {
+        let mut rev_iter = self.jobs.iter().rev();
+
+        let plus_id = rev_iter.next().map(|x| x.id);
+        let minus_id = rev_iter.next().map(|x| x.id);
         for job in &self.jobs {
-            let marker = if job.id == self.current {
+            let marker = if Some(job.id) == plus_id {
                 "+"
-            } else if job.id == self.previous {
+            } else if Some(job.id) == minus_id {
                 "-"
             } else {
                 " "
