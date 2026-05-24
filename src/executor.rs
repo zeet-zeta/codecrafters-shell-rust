@@ -16,6 +16,7 @@ enum Builtin {
     Pwd,
     Cd,
     Complete,
+    Jobs,
 }
 
 impl Builtin {
@@ -27,6 +28,7 @@ impl Builtin {
             "pwd" => Some(Builtin::Pwd),
             "cd" => Some(Builtin::Cd),
             "complete" => Some(Builtin::Complete),
+            "jobs" => Some(Builtin::Jobs),
             _ => None,
         }
     }
@@ -131,6 +133,7 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                 crate::state::unregister_completion(&c.args[1]);
             }
         }
+        Builtin::Jobs => {}
     }
 
     let _ = std::io::stdout().flush();
