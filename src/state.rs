@@ -103,7 +103,8 @@ pub struct JobDetail {
 }
 
 pub struct JobTable {
-    pub recent: usize,
+    pub current: usize,
+    pub previous: usize,
     pub jobs: Vec<JobDetail>,
 }
 
@@ -121,19 +122,29 @@ impl JobDetail {
 impl JobTable {
     pub fn new() -> Self {
         Self {
-            recent: 0,
+            current: 0,
+            previous: 0,
             jobs: Vec::new(),
         }
     }
 
     pub fn add(&mut self, detail: JobDetail) {
-        self.recent = detail.id;
+        if self.current != 0 {
+            self.previous = self.current;
+        }
+        self.current = detail.id;
         self.jobs.push(detail);
     }
 
     pub fn print(&self) {
         for job in &self.jobs {
-            let marker = if job.id == self.recent { "+" } else { " " };
+            let marker = if job.id == self.current {
+                "+"
+            } else if job.id == self.previous {
+                "-"
+            } else {
+                " "
+            };
             println!(
                 "[{}]{}  {}{}",
                 job.id, marker, job.state, job.command_string
