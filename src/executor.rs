@@ -6,8 +6,11 @@ use std::{
     process::Command,
 };
 
-use crate::parser::{CommandArgs, RedirectMode};
 use crate::utils::find_executable;
+use crate::{
+    parser::{CommandArgs, RedirectMode},
+    state::JobDetail,
+};
 
 enum Builtin {
     Exit,
@@ -57,10 +60,12 @@ fn execute_external(c: CommandArgs) {
                     child.stderr(file);
                 }
             }
-            if c.background {
+            if let Some(command_string) = c.backup_the_whole_cmd {
                 let job_id = crate::state::alloc_id();
                 let pid = child.spawn().unwrap().id();
+                let datail = JobDetail::new(job_id, pid, command_string);
                 println!("[{}] {}", job_id, pid);
+                crate::state::add_to_job_table(datail);
             } else {
                 let _ = child.status();
             }
@@ -139,7 +144,9 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                 crate::state::unregister_completion(&c.args[1]);
             }
         }
-        Builtin::Jobs => {}
+        Builtin::Jobs => {
+            crate::state::print_job_table();
+        }
     }
 
     let _ = std::io::stdout().flush();

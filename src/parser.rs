@@ -18,7 +18,7 @@ pub struct CommandArgs {
     pub args: Vec<String>,
     pub stdout: Option<(String, RedirectMode)>,
     pub stderr: Option<(String, RedirectMode)>,
-    pub background: bool,
+    pub backup_the_whole_cmd: Option<String>, //同时用于标识是不是后台命令
 }
 
 pub fn split(input: &str) -> (Vec<String>, usize, String) {
@@ -77,6 +77,12 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
         return None;
     }
     let mut result = CommandArgs::default();
+
+    if tokens.last().map_or(false, |x| x == "&") {
+        result.backup_the_whole_cmd = Some(tokens.join(" "));
+        tokens.pop();
+    }
+
     if let Some(idx) = tokens.iter().rposition(|x| x == "2>" || x == "2>>") {
         if idx + 1 < tokens.len() {
             let mode = if tokens[idx] == "2>>" {
@@ -115,10 +121,6 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
     }
 
     result.cmd = tokens.remove(0);
-    if tokens.last().map_or(false, |x| x == "&") {
-        result.background = true;
-        tokens.pop();
-    }
     result.args = tokens;
     Some(result)
 }
