@@ -18,6 +18,7 @@ pub struct CommandArgs {
     pub args: Vec<String>,
     pub stdout: Option<(String, RedirectMode)>,
     pub stderr: Option<(String, RedirectMode)>,
+    pub background: bool,
 }
 
 pub fn split(input: &str) -> (Vec<String>, usize, String) {
@@ -114,6 +115,10 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
     }
 
     result.cmd = tokens.remove(0);
+    if tokens.last().map_or(false, |x| x == "&") {
+        result.background = true;
+        tokens.pop();
+    }
     result.args = tokens;
     Some(result)
 }

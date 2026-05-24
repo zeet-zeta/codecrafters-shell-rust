@@ -57,7 +57,13 @@ fn execute_external(c: CommandArgs) {
                     child.stderr(file);
                 }
             }
-            let _ = child.status();
+            if c.background {
+                let job_id = crate::state::alloc_id();
+                let pid = child.spawn().unwrap().id();
+                println!("[{}] {}", job_id, pid);
+            } else {
+                let _ = child.status();
+            }
         }
         None => eprintln!("{}: command not found", c.cmd),
     }
