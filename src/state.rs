@@ -114,6 +114,13 @@ impl JobDetail {
             state: JobState::Running,
         }
     }
+
+    pub fn to_string(&self, marker: &str) -> String {
+        format!(
+            "[{}]{}  {}{}",
+            self.id, marker, self.state, self.command_string
+        )
+    }
 }
 
 impl JobTable {
@@ -126,38 +133,46 @@ impl JobTable {
     }
 
     pub fn print(&self) {
-        let mut rev_iter = self.jobs.iter().rev();
-
-        let plus_id = rev_iter.next().map(|x| x.id);
-        let minus_id = rev_iter.next().map(|x| x.id);
+        let (plus_id, minus_id) = self.get_plus_and_minus_id();
         for job in &self.jobs {
-            let marker = if Some(job.id) == plus_id {
-                "+"
-            } else if Some(job.id) == minus_id {
-                "-"
-            } else {
-                " "
-            };
-            println!(
-                "[{}]{}  {}{}",
-                job.id, marker, job.state, job.command_string
-            );
+            let marker = Self::get_marker(job.id, plus_id, minus_id);
+            println!("{}", job.to_string(marker));
         }
     }
 
-    pub fn reap(&mut self) {
+    fn get_plus_and_minus_id(&self) -> (Option<usize>, Option<usize>) {
+        let mut rev_iter = self.jobs.iter().rev();
+        let plus_id = rev_iter.next().map(|x| x.id);
+        let minus_id = rev_iter.next().map(|x| x.id);
+        (plus_id, minus_id)
+    }
+
+    fn get_marker(id: usize, plus_id: Option<usize>, minus_id: Option<usize>) -> &'static str {
+        let marker = if Some(id) == plus_id {
+            "+"
+        } else if Some(id) == minus_id {
+            "-"
+        } else {
+            " "
+        };
+        marker
+    }
+
+    pub fn reap(&mut self) -> Vec<String> {
+        let mut result = Vec::new();
+        let (plus_id, minus_id) = self.get_plus_and_minus_id();
         for job in &mut self.jobs {
             if job.state == JobState::Running {
                 if let Ok(Some(_)) = job.handler.try_wait() {
                     job.state = JobState::Done;
                     job.command_string.truncate(job.command_string.len() - 2);
+                    let marker = Self::get_marker(job.id, plus_id, minus_id);
+                    result.push(job.to_string(marker));
                 }
             }
         }
-    }
-
-    pub fn remove_done(&mut self) {
         self.jobs.retain(|x| x.state == JobState::Running);
+        result
     }
 }
 

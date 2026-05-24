@@ -36,6 +36,10 @@ impl LineEditor {
 
     pub fn print_prompt(&mut self) -> io::Result<()> {
         let mut stdout = io::stdout();
+        let result = crate::state::with_global_jobs(|x| x.reap());
+        for x in result {
+            execute!(stdout, Print(x), Print("\r\n"))?;
+        }
         execute!(stdout, Print("$ "))
     }
 
