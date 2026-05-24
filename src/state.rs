@@ -127,6 +127,7 @@ impl JobDetail {
             if let Ok(Some(_)) = self.handler.try_wait() {
                 self.state = JobState::Done;
                 self.command_string.truncate(self.command_string.len() - 2);
+                dealloc_id(self.id);
                 return true;
             }
         }
