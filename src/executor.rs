@@ -62,10 +62,13 @@ fn execute_external(c: CommandArgs) {
             }
             if let Some(command_string) = c.backup_the_whole_cmd {
                 let job_id = crate::state::alloc_id();
-                let pid = child.spawn().unwrap().id();
-                let datail = JobDetail::new(job_id, pid, command_string);
-                println!("[{}] {}", job_id, pid);
-                crate::state::add_to_job_table(datail);
+                let handler = child.spawn().unwrap();
+                println!("[{}] {}", job_id, handler.id());
+                let datail = JobDetail::new(job_id, handler, command_string);
+                crate::state::with_global_jobs(|x| {
+                    let detail = datail;
+                    x.add(detail);
+                });
             } else {
                 let _ = child.status();
             }
@@ -145,7 +148,11 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             }
         }
         Builtin::Jobs => {
-            crate::state::print_job_table();
+            crate::state::with_global_jobs(|x| {
+                x.reap();
+                x.print();
+                x.remove_done();
+            });
         }
     }
 

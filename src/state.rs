@@ -4,8 +4,6 @@ use std::{
     sync::{LazyLock, Mutex, RwLock},
 };
 
-use crate::state;
-
 pub struct CompletionSpec {
     pub completer_path: String,
 }
@@ -80,6 +78,7 @@ pub fn dealloc_id(id: usize) {
     data.dealloc_id(id);
 }
 
+#[derive(PartialEq)]
 pub enum JobState {
     Running,
     Done,
@@ -97,7 +96,7 @@ impl fmt::Display for JobState {
 
 pub struct JobDetail {
     pub id: usize,
-    pub pid: u32,
+    pub handler: std::process::Child,
     pub command_string: String,
     pub state: JobState,
 }
@@ -109,10 +108,10 @@ pub struct JobTable {
 }
 
 impl JobDetail {
-    pub fn new(id: usize, pid: u32, command_string: String) -> Self {
+    pub fn new(id: usize, handler: std::process::Child, command_string: String) -> Self {
         Self {
             id,
-            pid,
+            handler,
             command_string,
             state: JobState::Running,
         }
@@ -151,14 +150,27 @@ impl JobTable {
             );
         }
     }
+
+    pub fn reap(&mut self) {
+        for job in &mut self.jobs {
+            if job.state == JobState::Running {
+                if let Ok(Some(_)) = job.handler.try_wait() {
+                    job.state = JobState::Done;
+                    job.command_string.truncate(job.command_string.len() - 2);
+                }
+            }
+        }
+    }
+
+    pub fn remove_done(&mut self) {
+        self.jobs.retain(|x| x.state == JobState::Running);
+    }
 }
 
-pub fn add_to_job_table(detail: JobDetail) {
-    let mut data = JOB_TABLE.lock().unwrap();
-    data.add(detail);
-}
-
-pub fn print_job_table() {
-    let data = JOB_TABLE.lock().unwrap();
-    data.print();
+pub fn with_global_jobs<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut JobTable) -> R,
+{
+    let mut guard = JOB_TABLE.lock().unwrap();
+    f(&mut *guard)
 }
