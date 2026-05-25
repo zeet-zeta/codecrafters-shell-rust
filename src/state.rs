@@ -2,10 +2,9 @@ use std::{
     collections::HashMap,
     fmt,
     fs::File,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, BufWriter, Write},
     path::Path,
     sync::{LazyLock, Mutex, RwLock},
-    thread::current,
 };
 
 pub struct CompletionSpec {
@@ -20,6 +19,7 @@ pub struct IDAllocator {
 pub struct History {
     pub lines: Vec<String>,
     pub current_idx: usize,
+    pub current_line_backup: String,
 }
 
 impl History {
@@ -27,6 +27,7 @@ impl History {
         Self {
             lines: Vec::new(),
             current_idx: 0,
+            current_line_backup: String::new(),
         }
     }
 
@@ -49,7 +50,10 @@ impl History {
         }
     }
 
-    pub fn up_arrow(&mut self) -> Option<String> {
+    pub fn up_arrow(&mut self, s: &str) -> Option<String> {
+        if self.current_idx == self.lines.len() {
+            self.current_line_backup = s.to_string();
+        }
         if self.current_idx == 0 {
             return None;
         } else {
@@ -63,7 +67,7 @@ impl History {
             return None;
         } else if self.current_idx == self.lines.len() - 1 {
             self.current_idx += 1;
-            return Some(String::new());
+            return Some(self.current_line_backup.clone());
         } else {
             self.current_idx += 1;
             return Some(self.lines[self.current_idx].clone());
@@ -80,6 +84,15 @@ impl History {
             }
         }
         self.current_idx = self.lines.len();
+        Ok(())
+    }
+
+    pub fn write_to_file(&self, filename: &Path) -> io::Result<()> {
+        let file = File::create(filename)?;
+        let mut writer = BufWriter::new(file);
+        for line in &self.lines {
+            writeln!(writer, "{}", line)?;
+        }
         Ok(())
     }
 }

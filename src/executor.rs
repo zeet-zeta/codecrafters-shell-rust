@@ -229,7 +229,16 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             if c.args.len() == 2 && c.args[0] == "-r" {
                 let filename = Path::new(&c.args[1]);
                 crate::state::with_global_history(|x| {
-                    let _ = x.read_from_file(filename);
+                    if let Err(e) = x.read_from_file(filename) {
+                        eprintln!("history: failed to read {}: {}", c.args[1], e);
+                    }
+                });
+            } else if c.args.len() == 2 && c.args[0] == "-w" {
+                let filename = Path::new(&c.args[1]);
+                crate::state::with_global_history(|x| {
+                    if let Err(e) = x.write_to_file(filename) {
+                        eprintln!("history: failed to write {}: {}", c.args[1], e);
+                    }
                 });
             } else {
                 let n = c.args.get(0).and_then(|s| s.parse().ok());

@@ -80,7 +80,9 @@ impl LineEditor {
                 execute!(stdout, Print(c))?;
             }
             (KeyCode::Up, KeyModifiers::NONE) => {
-                if let Some(s) = crate::state::with_global_history(|x| x.up_arrow()) {
+                if let Some(s) =
+                    crate::state::with_global_history(|x| x.up_arrow(&self.input_buffer))
+                {
                     self.change_current_line(&s)?;
                 }
             }
