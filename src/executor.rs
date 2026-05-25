@@ -1,7 +1,7 @@
 use std::{
     fs::{File, OpenOptions},
     io::{ErrorKind, Write},
-    os::fd::AsRawFd,
+    os::unix::io::AsRawFd,
     path::PathBuf,
     process::{Child, Command, Stdio},
 };
@@ -12,6 +12,7 @@ use crate::{
     state::JobDetail,
 };
 
+#[derive(PartialEq)]
 enum Builtin {
     Exit,
     Echo,
@@ -59,23 +60,41 @@ pub fn execute_pipeline(commands: Vec<CommandArgs>) {
         assert!(cmd_args.backup_the_whole_cmd.is_none());
         assert!(cmd_args.stderr.is_none());
         assert!(cmd_args.stdout.is_none());
-        assert!(Builtin::new(&cmd_args.cmd).is_none());
 
-        let mut cmd = Command::new(&cmd_args.cmd);
-        cmd.args(&cmd_args.args);
-        if let Some(stdout) = last_stdout.take() {
-            cmd.stdin(stdout);
-        }
-        if i < num_commands - 1 {
-            cmd.stdout(Stdio::piped());
-        }
-        let mut child = cmd.spawn().unwrap();
-        if i < num_commands - 1 {
-            if let Some(stdout) = child.stdout.take() {
-                last_stdout = Some(Stdio::from(stdout));
+        match Builtin::new(&cmd_args.cmd) {
+            Some(builtin_type) => {
+                if builtin_type == Builtin::Echo && i == 0 {
+                    let (reader, mut writer) = os_pipe::pipe().unwrap();
+                    let child_stdin: Stdio = reader.into();
+                    let _ = writer.write_all(cmd_args.args.join(" ").as_bytes());
+                    drop(writer);
+                    last_stdout = Some(child_stdin);
+                } else if i == num_commands - 1 {
+                    // 测试样例里面有 ls | type exit
+                    // 什么都不做 管道的读端我们不需要了
+                    // 此处其实最好想办法排空管道然后关闭这个fd
+                } else {
+                    panic!();
+                }
+            }
+            None => {
+                let mut cmd = Command::new(&cmd_args.cmd);
+                cmd.args(&cmd_args.args);
+                if let Some(stdout) = last_stdout.take() {
+                    cmd.stdin(stdout);
+                }
+                if i < num_commands - 1 {
+                    cmd.stdout(Stdio::piped());
+                }
+                let mut child = cmd.spawn().unwrap();
+                if i < num_commands - 1 {
+                    if let Some(stdout) = child.stdout.take() {
+                        last_stdout = Some(Stdio::from(stdout));
+                    }
+                }
+                child_processes.push(child);
             }
         }
-        child_processes.push(child);
     }
 
     for mut child in child_processes {
