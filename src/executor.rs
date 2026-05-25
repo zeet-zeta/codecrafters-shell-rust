@@ -247,7 +247,11 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
         Builtin::Declare => {
             if c.args.len() == 1 {
                 if let Some((key, value)) = c.args[0].split_once('=') {
-                    with_local_vars(|x| x.table.insert(key.to_string(), value.to_string()));
+                    if is_valid_identifier(key) {
+                        with_local_vars(|x| x.table.insert(key.to_string(), value.to_string()));
+                    } else {
+                        println!("declare: `{}': not a valid identifier", c.args[0]);
+                    }
                 }
             } else if c.args.len() == 2 && c.args[0] == "-p" {
                 let var = &c.args[1];
@@ -273,4 +277,20 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             libc::close(old_err);
         }
     }
+}
+
+fn is_valid_identifier(name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+
+    let mut chars = name.chars();
+
+    if let Some(first) = chars.next() {
+        if !first.is_ascii_alphabetic() && first != '_' {
+            return false;
+        }
+    }
+
+    chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
