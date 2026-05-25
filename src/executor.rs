@@ -18,6 +18,7 @@ enum Builtin {
     Complete,
     Jobs,
     History,
+    Declare,
 }
 
 impl Builtin {
@@ -31,6 +32,7 @@ impl Builtin {
             "complete" => Some(Builtin::Complete),
             "jobs" => Some(Builtin::Jobs),
             "history" => Some(Builtin::History),
+            "declare" => Some(Builtin::Declare),
             _ => None,
         }
     }
@@ -239,6 +241,7 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                 crate::state::with_global_history(|x| x.print(n));
             }
         }
+        Builtin::Declare => {}
     }
 
     let _ = std::io::stdout().flush();
