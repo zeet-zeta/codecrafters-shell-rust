@@ -39,7 +39,7 @@ fn main() -> io::Result<()> {
         crate::state::with_global_history(|x| {
             if let Err(_) = x.write_to_file(
                 &history_filename.to_str().unwrap(),
-                parser::RedirectMode::Overwrite,
+                parser::RedirectMode::Append,
             ) {
                 eprintln!("failed to write history to file");
             }

@@ -87,6 +87,7 @@ impl History {
             }
         }
         self.current_idx = self.lines.len();
+        self.last_synced_num = self.lines.len();
         Ok(())
     }
 
