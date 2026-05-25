@@ -231,7 +231,7 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                         _ => return,
                     };
                     if let Err(e) = result {
-                        eprintln!("history: failed to write {}: {}", c.args[1], e);
+                        eprintln!("history: failed in {}: {}", c.args[1], e);
                     }
                 });
             } else {

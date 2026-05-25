@@ -13,6 +13,13 @@ mod state;
 mod utils;
 
 fn main() -> io::Result<()> {
+    if let Some(history_filename) = std::env::var_os("HISTFILE") {
+        crate::state::with_global_history(|x| {
+            if let Err(_) = x.read_from_file(&history_filename.to_str().unwrap()) {
+                eprintln!("failed to load history from file");
+            }
+        });
+    }
     enable_raw_mode()?;
 
     let mut editor = LineEditor::new();
@@ -28,5 +35,15 @@ fn main() -> io::Result<()> {
     }
 
     disable_raw_mode()?;
+    if let Some(history_filename) = std::env::var_os("HISTFILE") {
+        crate::state::with_global_history(|x| {
+            if let Err(_) = x.write_to_file(
+                &history_filename.to_str().unwrap(),
+                parser::RedirectMode::Overwrite,
+            ) {
+                eprintln!("failed to write history to file");
+            }
+        });
+    }
     Ok(())
 }
