@@ -7,6 +7,7 @@ enum State {
     DoubleQuoteWithEscape,
 }
 
+#[derive(Clone, Copy)]
 pub enum RedirectMode {
     Overwrite,
     Append,

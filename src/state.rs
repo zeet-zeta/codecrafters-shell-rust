@@ -94,7 +94,11 @@ impl History {
     pub fn write_to_file(&mut self, filename: &str, mode: RedirectMode) -> io::Result<()> {
         let file = open_file(filename, mode)?;
         let mut writer = BufWriter::new(file);
-        for line in self.lines.iter().skip(self.last_synced_num) {
+        let skip_num = match mode {
+            RedirectMode::Append => self.last_synced_num,
+            RedirectMode::Overwrite => 0,
+        };
+        for line in self.lines.iter().skip(skip_num) {
             writeln!(writer, "{}", line)?;
         }
         self.last_synced_num = self.lines.len();
