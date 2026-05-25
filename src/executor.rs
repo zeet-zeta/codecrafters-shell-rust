@@ -75,6 +75,7 @@ pub fn execute_pipeline(commands: Vec<CommandArgs>) {
                     // 测试样例里面有 ls | type exit
                     // 什么都不做 管道的读端我们不需要了
                     // 此处其实最好想办法排空管道然后关闭这个fd
+                    execute_builtin(builtin_type, cmd_args);
                 } else {
                     panic!();
                 }
