@@ -252,7 +252,7 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             } else if c.args.len() == 2 && c.args[0] == "-p" {
                 let var = &c.args[1];
                 with_local_vars(|x| match x.table.get(var) {
-                    Some(val) => println!("{}", val),
+                    Some(val) => println!("declare -- {}=\"{}\"", var, val),
                     None => println!("declare: {}: not found", var),
                 });
             }
