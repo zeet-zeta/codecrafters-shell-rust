@@ -21,6 +21,17 @@ impl History {
     pub fn new() -> Self {
         Self { lines: Vec::new() }
     }
+
+    pub fn push(&mut self, s: &str) {
+        self.lines.push(s.to_string())
+    }
+
+    pub fn print(&self) {
+        for (i, command) in self.lines.iter().enumerate() {
+            let line_number = i + 1;
+            println!("{:>5} {}", line_number, command);
+        }
+    }
 }
 
 impl IDAllocator {

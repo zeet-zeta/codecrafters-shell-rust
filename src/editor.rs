@@ -48,6 +48,7 @@ impl LineEditor {
         match (key_event.code, key_event.modifiers) {
             (KeyCode::Enter, KeyModifiers::NONE) | (KeyCode::Char('j'), KeyModifiers::CONTROL) => {
                 execute!(stdout, Print("\r\n"))?;
+                crate::state::with_global_history(|x| x.push(&self.input_buffer));
                 self.input_buffer.push('\n');
                 if let Some(mut c) = parser::parse(&self.input_buffer) {
                     if c[0].cmd == "exit" {

@@ -226,7 +226,7 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             });
         }
         Builtin::History => {
-            todo!()
+            crate::state::with_global_history(|x| x.print());
         }
     }
 
