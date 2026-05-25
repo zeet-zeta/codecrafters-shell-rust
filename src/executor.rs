@@ -66,7 +66,9 @@ pub fn execute_pipeline(commands: Vec<CommandArgs>) {
                 if builtin_type == Builtin::Echo && i == 0 {
                     let (reader, mut writer) = os_pipe::pipe().unwrap();
                     let child_stdin: Stdio = reader.into();
-                    let _ = writer.write_all(cmd_args.args.join(" ").as_bytes());
+                    let mut to_print = cmd_args.args.join(" ");
+                    to_print.push_str("\n");
+                    let _ = writer.write_all(to_print.as_bytes());
                     drop(writer);
                     last_stdout = Some(child_stdin);
                 } else if i == num_commands - 1 {
