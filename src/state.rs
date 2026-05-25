@@ -1,6 +1,9 @@
 use std::{
     collections::HashMap,
     fmt,
+    fs::File,
+    io::{self, BufRead, BufReader},
+    path::Path,
     sync::{LazyLock, Mutex, RwLock},
     thread::current,
 };
@@ -65,6 +68,19 @@ impl History {
             self.current_idx += 1;
             return Some(self.lines[self.current_idx].clone());
         }
+    }
+
+    pub fn read_from_file(&mut self, filename: &Path) -> io::Result<()> {
+        let file = File::open(filename)?;
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            let line = line?;
+            if !line.trim().is_empty() {
+                self.lines.push(line);
+            }
+        }
+        self.current_idx = self.lines.len();
+        Ok(())
     }
 }
 

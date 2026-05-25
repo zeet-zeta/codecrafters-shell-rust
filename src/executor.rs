@@ -2,7 +2,7 @@ use std::{
     fs::{File, OpenOptions},
     io::{ErrorKind, Write},
     os::unix::io::AsRawFd,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
 };
 
@@ -226,8 +226,15 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             });
         }
         Builtin::History => {
-            let n = c.args.get(0).and_then(|s| s.parse().ok());
-            crate::state::with_global_history(|x| x.print(n));
+            if c.args.len() == 2 && c.args[0] == "-r" {
+                let filename = Path::new(&c.args[1]);
+                crate::state::with_global_history(|x| {
+                    let _ = x.read_from_file(filename);
+                });
+            } else {
+                let n = c.args.get(0).and_then(|s| s.parse().ok());
+                crate::state::with_global_history(|x| x.print(n));
+            }
         }
     }
 
