@@ -21,7 +21,8 @@ pub struct CommandArgs {
     pub backup_the_whole_cmd: Option<String>, //同时用于标识是不是后台命令
 }
 
-pub fn split(input: &str) -> (Vec<String>, usize, String) {
+pub fn split(input: &str) -> (Vec<Vec<String>>, usize, String) {
+    let mut result = Vec::new();
     let mut args = Vec::new();
     let mut current_arg = String::new();
     let mut state = State::Normal;
@@ -38,13 +39,20 @@ pub fn split(input: &str) -> (Vec<String>, usize, String) {
                 }
                 ' ' | '\t' | '\n' => {
                     if !current_arg.is_empty() {
-                        args.push(current_arg.clone());
-                        current_arg.clear();
+                        args.push(std::mem::take(&mut current_arg));
                     }
                     completion_start = i;
                 }
                 '\\' => {
                     state = State::NormalWithEscape;
+                }
+                '|' => {
+                    if !current_arg.is_empty() {
+                        args.push(std::mem::take(&mut current_arg));
+                    }
+                    completion_start = i;
+
+                    result.push(std::mem::take(&mut args));
                 }
                 _ => {
                     current_arg.push(ch);
@@ -69,7 +77,8 @@ pub fn split(input: &str) -> (Vec<String>, usize, String) {
             }
         }
     }
-    (args, completion_start.wrapping_add(1), current_arg)
+    result.push(args);
+    (result, completion_start.wrapping_add(1), current_arg)
 }
 
 fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
@@ -125,8 +134,11 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
     Some(result)
 }
 
-pub fn parse(input: &str) -> Option<CommandArgs> {
-    let (tokens, _, _) = split(input);
-    let command = parse_redirect(tokens);
-    command
+pub fn parse(input: &str) -> Option<Vec<CommandArgs>> {
+    let (commands, _, _) = split(input);
+    commands
+        .into_iter()
+        .map(|x| parse_redirect(x))
+        .into_iter()
+        .collect()
 }

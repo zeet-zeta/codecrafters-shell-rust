@@ -49,13 +49,17 @@ impl LineEditor {
             (KeyCode::Enter, KeyModifiers::NONE) | (KeyCode::Char('j'), KeyModifiers::CONTROL) => {
                 execute!(stdout, Print("\r\n"))?;
                 self.input_buffer.push('\n');
-                if let Some(c) = parser::parse(&self.input_buffer) {
-                    if c.cmd == "exit" {
+                if let Some(mut c) = parser::parse(&self.input_buffer) {
+                    if c[0].cmd == "exit" {
                         self.should_exit = true;
                         return Ok(());
                     }
                     disable_raw_mode()?;
-                    executor::execute(c);
+                    if c.len() == 1 {
+                        executor::execute_single(c.remove(0));
+                    } else {
+                        executor::execute_pipeline(c);
+                    }
                     enable_raw_mode()?;
                 }
                 self.input_buffer.clear();
@@ -80,11 +84,12 @@ impl LineEditor {
 
     fn handle_tab(&mut self) -> io::Result<()> {
         let mut stdout = io::stdout();
-        let (temp, mut completion_start, pending) = parser::split(&self.input_buffer);
+        let (commands, mut completion_start, pending) = parser::split(&self.input_buffer);
 
-        if temp.len() != 0 {}
+        let temp = commands.last().unwrap();
+        let cmd_or_file = if temp.len() == 0 { true } else { false };
 
-        let mut candidates = if temp.len() == 0 {
+        let mut candidates = if cmd_or_file {
             utils::get_all_commands()
         } else {
             if let Some(completer) = crate::state::find_completion(&temp[0]) {

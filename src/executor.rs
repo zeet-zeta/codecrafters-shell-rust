@@ -1,9 +1,9 @@
 use std::{
     fs::{File, OpenOptions},
-    io::Write,
+    io::{ErrorKind, Write},
     os::fd::AsRawFd,
     path::PathBuf,
-    process::Command,
+    process::{Child, Command, Stdio},
 };
 
 use crate::utils::find_executable;
@@ -37,7 +37,7 @@ impl Builtin {
     }
 }
 
-pub fn execute(c: CommandArgs) {
+pub fn execute_single(c: CommandArgs) {
     if let Some(b) = Builtin::new(&c.cmd) {
         execute_builtin(b, c);
     } else {
@@ -45,35 +45,84 @@ pub fn execute(c: CommandArgs) {
     }
 }
 
+pub fn execute_pipeline(commands: Vec<CommandArgs>) {
+    // 相信管道是最普通的，没有&，没有重定向，没有内部命令
+    if commands.is_empty() {
+        return;
+    }
+
+    let mut last_stdout: Option<Stdio> = None;
+    let mut child_processes: Vec<Child> = Vec::new();
+    let num_commands = commands.len();
+
+    for (i, cmd_args) in commands.into_iter().enumerate() {
+        assert!(cmd_args.backup_the_whole_cmd.is_none());
+        assert!(cmd_args.stderr.is_none());
+        assert!(cmd_args.stdout.is_none());
+        assert!(Builtin::new(&cmd_args.cmd).is_none());
+
+        let mut cmd = Command::new(&cmd_args.cmd);
+        cmd.args(&cmd_args.args);
+        if let Some(stdout) = last_stdout.take() {
+            cmd.stdin(stdout);
+        }
+        if i < num_commands - 1 {
+            cmd.stdout(Stdio::piped());
+        }
+        let mut child = cmd.spawn().unwrap();
+        if i < num_commands - 1 {
+            if let Some(stdout) = child.stdout.take() {
+                last_stdout = Some(Stdio::from(stdout));
+            }
+        }
+        child_processes.push(child);
+    }
+
+    for mut child in child_processes {
+        let _ = child.wait();
+    }
+}
+
 fn execute_external(c: CommandArgs) {
-    match find_executable(&c.cmd) {
-        Some(_) => {
-            let mut child = Command::new(c.cmd);
-            child.args(c.args);
-            if let Some((path, mode)) = c.stdout {
-                if let Ok(file) = open_file(&path, mode) {
-                    child.stdout(file);
-                }
-            }
-            if let Some((path, mode)) = c.stderr {
-                if let Ok(file) = open_file(&path, mode) {
-                    child.stderr(file);
-                }
-            }
-            if let Some(command_string) = c.backup_the_whole_cmd {
+    let mut child = Command::new(&c.cmd);
+    child.args(c.args);
+    if let Some((path, mode)) = c.stdout {
+        if let Ok(file) = open_file(&path, mode) {
+            child.stdout(file);
+        }
+    }
+    if let Some((path, mode)) = c.stderr {
+        if let Ok(file) = open_file(&path, mode) {
+            child.stderr(file);
+        }
+    }
+    if let Some(command_string) = c.backup_the_whole_cmd {
+        match child.spawn() {
+            Ok(handler) => {
                 let job_id = crate::state::alloc_id();
-                let handler = child.spawn().unwrap();
                 println!("[{}] {}", job_id, handler.id());
                 let datail = JobDetail::new(job_id, handler, command_string);
                 crate::state::with_global_jobs(|x| {
                     let detail = datail;
                     x.add(detail);
                 });
-            } else {
-                let _ = child.status();
+            }
+            Err(err) => {
+                if err.kind() == ErrorKind::NotFound {
+                    eprintln!("{}: command not found", c.cmd);
+                } else {
+                    panic!();
+                }
             }
         }
-        None => eprintln!("{}: command not found", c.cmd),
+    } else {
+        if let Err(err) = child.status() {
+            if err.kind() == ErrorKind::NotFound {
+                eprintln!("{}: command not found", c.cmd);
+            } else {
+                panic!();
+            }
+        }
     }
 }
 
