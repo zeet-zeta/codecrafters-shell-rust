@@ -226,7 +226,8 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             });
         }
         Builtin::History => {
-            crate::state::with_global_history(|x| x.print());
+            let n = c.args.get(0).and_then(|s| s.parse().ok());
+            crate::state::with_global_history(|x| x.print(n));
         }
     }
 

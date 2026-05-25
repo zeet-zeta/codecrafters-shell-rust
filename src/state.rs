@@ -26,8 +26,15 @@ impl History {
         self.lines.push(s.to_string())
     }
 
-    pub fn print(&self) {
-        for (i, command) in self.lines.iter().enumerate() {
+    pub fn print(&self, n: Option<usize>) {
+        let total_len = self.lines.len();
+        let count = match n {
+            Some(val) => val.min(total_len),
+            None => total_len,
+        };
+        let skip_count = total_len - count;
+
+        for (i, command) in self.lines.iter().enumerate().skip(skip_count) {
             let line_number = i + 1;
             println!("{:>5} {}", line_number, command);
         }
