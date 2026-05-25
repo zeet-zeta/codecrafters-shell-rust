@@ -21,6 +21,7 @@ enum Builtin {
     Cd,
     Complete,
     Jobs,
+    History,
 }
 
 impl Builtin {
@@ -33,6 +34,7 @@ impl Builtin {
             "cd" => Some(Builtin::Cd),
             "complete" => Some(Builtin::Complete),
             "jobs" => Some(Builtin::Jobs),
+            "history" => Some(Builtin::History),
             _ => None,
         }
     }
@@ -222,6 +224,9 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             crate::state::with_global_jobs(|x| {
                 x.reap_and_print();
             });
+        }
+        Builtin::History => {
+            todo!()
         }
     }
 

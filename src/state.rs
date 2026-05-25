@@ -13,6 +13,16 @@ pub struct IDAllocator {
     pub recycle_stack: Vec<usize>,
 }
 
+pub struct History {
+    pub lines: Vec<String>,
+}
+
+impl History {
+    pub fn new() -> Self {
+        Self { lines: Vec::new() }
+    }
+}
+
 impl IDAllocator {
     pub fn new() -> Self {
         Self {
@@ -42,6 +52,8 @@ pub static ID_ALLOCATOR: LazyLock<Mutex<IDAllocator>> =
     LazyLock::new(|| Mutex::new(IDAllocator::new()));
 
 pub static JOB_TABLE: LazyLock<Mutex<JobTable>> = LazyLock::new(|| Mutex::new(JobTable::new()));
+
+pub static HISTORY: LazyLock<Mutex<History>> = LazyLock::new(|| Mutex::new(History::new()));
 
 pub fn register_completion(cmd: String, path: String) {
     if let Ok(mut guard) = COMPLETION_REGISTRY.write() {
@@ -191,5 +203,13 @@ where
     F: FnOnce(&mut JobTable) -> R,
 {
     let mut guard = JOB_TABLE.lock().unwrap();
+    f(&mut *guard)
+}
+
+pub fn with_global_history<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut History) -> R,
+{
+    let mut guard = HISTORY.lock().unwrap();
     f(&mut *guard)
 }
