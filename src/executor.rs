@@ -5,8 +5,11 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
-use crate::utils::{find_executable, open_file};
 use crate::{parser::CommandArgs, state::JobDetail};
+use crate::{
+    state::with_local_vars,
+    utils::{find_executable, open_file},
+};
 
 #[derive(PartialEq)]
 enum Builtin {
@@ -241,7 +244,19 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
                 crate::state::with_global_history(|x| x.print(n));
             }
         }
-        Builtin::Declare => {}
+        Builtin::Declare => {
+            if c.args.len() == 1 {
+                if let Some((key, value)) = c.args[0].split_once('=') {
+                    with_local_vars(|x| x.table.insert(key.to_string(), value.to_string()));
+                }
+            } else if c.args.len() == 2 && c.args[0] == "-p" {
+                let var = &c.args[1];
+                with_local_vars(|x| match x.table.get(var) {
+                    Some(val) => println!("{}", val),
+                    None => println!("declare: {}: not found", var),
+                });
+            }
+        }
     }
 
     let _ = std::io::stdout().flush();

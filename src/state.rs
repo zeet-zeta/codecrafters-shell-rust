@@ -8,6 +8,18 @@ use std::{
 
 use crate::{parser::RedirectMode, utils::open_file};
 
+pub struct LocalVars {
+    pub table: HashMap<String, String>,
+}
+
+impl LocalVars {
+    pub fn new() -> Self {
+        Self {
+            table: HashMap::new(),
+        }
+    }
+}
+
 pub struct CompletionSpec {
     pub completer_path: String,
 }
@@ -136,7 +148,9 @@ pub static ID_ALLOCATOR: LazyLock<Mutex<IDAllocator>> =
 
 pub static JOB_TABLE: LazyLock<Mutex<JobTable>> = LazyLock::new(|| Mutex::new(JobTable::new()));
 
-pub static HISTORY: LazyLock<Mutex<History>> = LazyLock::new(|| Mutex::new(History::new()));
+pub static HISTORY_TABLE: LazyLock<Mutex<History>> = LazyLock::new(|| Mutex::new(History::new()));
+
+pub static LOCAL_VARS: LazyLock<Mutex<LocalVars>> = LazyLock::new(|| Mutex::new(LocalVars::new()));
 
 pub fn register_completion(cmd: String, path: String) {
     if let Ok(mut guard) = COMPLETION_REGISTRY.write() {
@@ -293,6 +307,14 @@ pub fn with_global_history<F, R>(f: F) -> R
 where
     F: FnOnce(&mut History) -> R,
 {
-    let mut guard = HISTORY.lock().unwrap();
+    let mut guard = HISTORY_TABLE.lock().unwrap();
+    f(&mut *guard)
+}
+
+pub fn with_local_vars<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut LocalVars) -> R,
+{
+    let mut guard = LOCAL_VARS.lock().unwrap();
     f(&mut *guard)
 }
