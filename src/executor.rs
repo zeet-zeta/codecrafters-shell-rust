@@ -1,16 +1,12 @@
 use std::{
-    fs::{File, OpenOptions},
     io::{ErrorKind, Write},
     os::unix::io::AsRawFd,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
 };
 
-use crate::utils::find_executable;
-use crate::{
-    parser::{CommandArgs, RedirectMode},
-    state::JobDetail,
-};
+use crate::utils::{find_executable, open_file};
+use crate::{parser::CommandArgs, state::JobDetail};
 
 #[derive(PartialEq)]
 enum Builtin {
@@ -226,17 +222,15 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             });
         }
         Builtin::History => {
-            if c.args.len() == 2 && c.args[0] == "-r" {
-                let filename = Path::new(&c.args[1]);
+            if c.args.len() == 2 {
                 crate::state::with_global_history(|x| {
-                    if let Err(e) = x.read_from_file(filename) {
-                        eprintln!("history: failed to read {}: {}", c.args[1], e);
-                    }
-                });
-            } else if c.args.len() == 2 && c.args[0] == "-w" {
-                let filename = Path::new(&c.args[1]);
-                crate::state::with_global_history(|x| {
-                    if let Err(e) = x.write_to_file(filename) {
+                    let result = match c.args[0].as_str() {
+                        "-r" => x.read_from_file(&c.args[1]),
+                        "-w" => x.write_to_file(&c.args[1], crate::parser::RedirectMode::Overwrite),
+                        "-a" => x.write_to_file(&c.args[1], crate::parser::RedirectMode::Append),
+                        _ => return,
+                    };
+                    if let Err(e) = result {
                         eprintln!("history: failed to write {}: {}", c.args[1], e);
                     }
                 });
@@ -260,16 +254,5 @@ fn execute_builtin(builtin_type: Builtin, c: CommandArgs) {
             libc::dup2(old_err, libc::STDERR_FILENO);
             libc::close(old_err);
         }
-    }
-}
-
-fn open_file(path: &str, mode: RedirectMode) -> std::io::Result<File> {
-    match mode {
-        RedirectMode::Overwrite => OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(path),
-        RedirectMode::Append => OpenOptions::new().append(true).create(true).open(path),
     }
 }

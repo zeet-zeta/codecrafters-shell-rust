@@ -1,7 +1,9 @@
-use std::fs;
+use std::fs::{File, OpenOptions};
 use std::io::{self};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
+
+use crate::parser::RedirectMode;
 
 pub fn find_executable(cmd: &str) -> Option<std::path::PathBuf> {
     let path_os = std::env::var_os("PATH")?;
@@ -72,4 +74,15 @@ pub fn get_files_and_directories(path: &Path) -> io::Result<Vec<String>> {
         })
         .collect();
     Ok(file_list)
+}
+
+pub fn open_file(path: &str, mode: RedirectMode) -> std::io::Result<File> {
+    match mode {
+        RedirectMode::Overwrite => OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path),
+        RedirectMode::Append => OpenOptions::new().append(true).create(true).open(path),
+    }
 }

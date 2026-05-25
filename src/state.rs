@@ -7,6 +7,8 @@ use std::{
     sync::{LazyLock, Mutex, RwLock},
 };
 
+use crate::{parser::RedirectMode, utils::open_file};
+
 pub struct CompletionSpec {
     pub completer_path: String,
 }
@@ -20,6 +22,7 @@ pub struct History {
     pub lines: Vec<String>,
     pub current_idx: usize,
     pub current_line_backup: String,
+    pub last_synced_index: usize,
 }
 
 impl History {
@@ -28,6 +31,7 @@ impl History {
             lines: Vec::new(),
             current_idx: 0,
             current_line_backup: String::new(),
+            last_synced_index: 0,
         }
     }
 
@@ -74,7 +78,7 @@ impl History {
         }
     }
 
-    pub fn read_from_file(&mut self, filename: &Path) -> io::Result<()> {
+    pub fn read_from_file(&mut self, filename: &str) -> io::Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
         for line in reader.lines() {
@@ -87,8 +91,8 @@ impl History {
         Ok(())
     }
 
-    pub fn write_to_file(&self, filename: &Path) -> io::Result<()> {
-        let file = File::create(filename)?;
+    pub fn write_to_file(&self, filename: &str, mode: RedirectMode) -> io::Result<()> {
+        let file = open_file(filename, mode)?;
         let mut writer = BufWriter::new(file);
         for line in &self.lines {
             writeln!(writer, "{}", line)?;
