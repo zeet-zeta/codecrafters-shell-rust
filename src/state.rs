@@ -3,7 +3,6 @@ use std::{
     fmt,
     fs::File,
     io::{self, BufRead, BufReader, BufWriter, Write},
-    path::Path,
     sync::{LazyLock, Mutex, RwLock},
 };
 
@@ -22,7 +21,7 @@ pub struct History {
     pub lines: Vec<String>,
     pub current_idx: usize,
     pub current_line_backup: String,
-    pub last_synced_index: usize,
+    pub last_synced_num: usize,
 }
 
 impl History {
@@ -31,7 +30,7 @@ impl History {
             lines: Vec::new(),
             current_idx: 0,
             current_line_backup: String::new(),
-            last_synced_index: 0,
+            last_synced_num: 0,
         }
     }
 
@@ -91,12 +90,13 @@ impl History {
         Ok(())
     }
 
-    pub fn write_to_file(&self, filename: &str, mode: RedirectMode) -> io::Result<()> {
+    pub fn write_to_file(&mut self, filename: &str, mode: RedirectMode) -> io::Result<()> {
         let file = open_file(filename, mode)?;
         let mut writer = BufWriter::new(file);
-        for line in &self.lines {
+        for line in self.lines.iter().skip(self.last_synced_num) {
             writeln!(writer, "{}", line)?;
         }
+        self.last_synced_num = self.lines.len();
         Ok(())
     }
 }

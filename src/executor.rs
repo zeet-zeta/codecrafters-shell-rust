@@ -1,7 +1,7 @@
 use std::{
     io::{ErrorKind, Write},
     os::unix::io::AsRawFd,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Child, Command, Stdio},
 };
 
