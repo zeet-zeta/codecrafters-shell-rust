@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     fmt,
     sync::{LazyLock, Mutex, RwLock},
+    thread::current,
 };
 
 pub struct CompletionSpec {
@@ -15,15 +16,20 @@ pub struct IDAllocator {
 
 pub struct History {
     pub lines: Vec<String>,
+    pub current_idx: usize,
 }
 
 impl History {
     pub fn new() -> Self {
-        Self { lines: Vec::new() }
+        Self {
+            lines: Vec::new(),
+            current_idx: 0,
+        }
     }
 
     pub fn push(&mut self, s: &str) {
-        self.lines.push(s.to_string())
+        self.lines.push(s.to_string());
+        self.current_idx = self.lines.len();
     }
 
     pub fn print(&self, n: Option<usize>) {
@@ -37,6 +43,27 @@ impl History {
         for (i, command) in self.lines.iter().enumerate().skip(skip_count) {
             let line_number = i + 1;
             println!("{:>5} {}", line_number, command);
+        }
+    }
+
+    pub fn up_arrow(&mut self) -> Option<String> {
+        if self.current_idx == 0 {
+            return None;
+        } else {
+            self.current_idx -= 1;
+            return Some(self.lines[self.current_idx].clone());
+        }
+    }
+
+    pub fn down_arrow(&mut self) -> Option<String> {
+        if self.current_idx == self.lines.len() {
+            return None;
+        } else if self.current_idx == self.lines.len() - 1 {
+            self.current_idx += 1;
+            return Some(String::new());
+        } else {
+            self.current_idx += 1;
+            return Some(self.lines[self.current_idx].clone());
         }
     }
 }

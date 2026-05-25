@@ -5,10 +5,11 @@ use std::{
 };
 
 use crossterm::{
+    cursor,
     event::{KeyCode, KeyEvent, KeyModifiers},
     execute,
     style::Print,
-    terminal::{disable_raw_mode, enable_raw_mode},
+    terminal::{self, disable_raw_mode, enable_raw_mode},
 };
 
 use crate::executor;
@@ -77,6 +78,16 @@ impl LineEditor {
             (KeyCode::Char(c), KeyModifiers::NONE | KeyModifiers::SHIFT) => {
                 self.input_buffer.push(c);
                 execute!(stdout, Print(c))?;
+            }
+            (KeyCode::Up, KeyModifiers::NONE) => {
+                if let Some(s) = crate::state::with_global_history(|x| x.up_arrow()) {
+                    self.change_current_line(&s)?;
+                }
+            }
+            (KeyCode::Down, KeyModifiers::NONE) => {
+                if let Some(s) = crate::state::with_global_history(|x| x.down_arrow()) {
+                    self.change_current_line(&s)?;
+                }
             }
             _ => {}
         }
@@ -173,6 +184,18 @@ impl LineEditor {
         let mut stdout = io::stdout();
         self.input_buffer.push_str(s);
         execute!(stdout, Print(s))
+    }
+
+    fn change_current_line(&mut self, s: &str) -> io::Result<()> {
+        let mut stdout = io::stdout();
+        execute!(
+            stdout,
+            cursor::MoveToColumn(0),
+            terminal::Clear(terminal::ClearType::UntilNewLine)
+        )?;
+        self.print_prompt()?;
+        self.input_buffer.clear();
+        self.append_to_buffer(&s)
     }
 }
 
