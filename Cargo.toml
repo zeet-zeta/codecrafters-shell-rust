@@ -12,3 +12,4 @@ thiserror = "1.0.38"                             # error handling
 libc = "0.2"
 crossterm = "0.29.0"
 os_pipe = "1.2"
+regex = "1.12.3"

@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+
+use regex::{Captures, Regex};
+
+use crate::state::with_local_vars;
 #[derive(Debug, PartialEq)]
 enum State {
     Normal,
@@ -135,8 +140,21 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
     Some(result)
 }
 
+fn parse_vars(input: &str, context: &HashMap<String, String>) -> String {
+    let re = Regex::new(r"\$([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+    let result = re.replace_all(input, |caps: &Captures| {
+        let var_name = &caps[1];
+        match context.get(var_name) {
+            Some(value) => value.clone(),
+            None => caps[0].to_string(),
+        }
+    });
+    result.into_owned()
+}
+
 pub fn parse(input: &str) -> Option<Vec<CommandArgs>> {
-    let (commands, _, _) = split(input);
+    let expand_vars = with_local_vars(|x| parse_vars(input, &x.table));
+    let (commands, _, _) = split(&expand_vars);
     commands
         .into_iter()
         .map(|x| parse_redirect(x))
