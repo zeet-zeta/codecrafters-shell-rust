@@ -150,7 +150,7 @@ fn parse_vars(input: &str, context: &HashMap<String, String>) -> String {
             .unwrap_or("");
         match context.get(var_name) {
             Some(value) => value.clone(),
-            None => caps[0].to_string(),
+            None => "".to_string(),
         }
     });
     result.into_owned()
