@@ -141,9 +141,13 @@ fn parse_redirect(mut tokens: Vec<String>) -> Option<CommandArgs> {
 }
 
 fn parse_vars(input: &str, context: &HashMap<String, String>) -> String {
-    let re = Regex::new(r"\$([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+    let re = Regex::new(r"\$(?:([a-zA-Z_][a-zA-Z0-9_]*)|\{([a-zA-Z_][a-zA-Z0-9_]*)\})").unwrap();
     let result = re.replace_all(input, |caps: &Captures| {
-        let var_name = &caps[1];
+        let var_name = caps
+            .get(1)
+            .or_else(|| caps.get(2))
+            .map(|m| m.as_str())
+            .unwrap_or("");
         match context.get(var_name) {
             Some(value) => value.clone(),
             None => caps[0].to_string(),
